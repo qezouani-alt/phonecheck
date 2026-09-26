@@ -48,7 +48,7 @@ Future<void> unlockTestWithRewardedAd(
     ),
   );
 
-  final rewarded = await RewardedAdService().showRewardedAd();
+  final rewarded = await RewardedAdService.instance.showRewardedAd();
   if (!context.mounted) return;
   Navigator.of(context, rootNavigator: true).pop();
 

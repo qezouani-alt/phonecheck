@@ -4,36 +4,53 @@ import 'package:flutter/foundation.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 /// Shows an opt-in rewarded ad and reports whether Google awarded the reward.
-/// Test ad units are the defaults; provide production IDs with dart-defines.
+/// Uses the iOS rewarded ad unit configured for this app.
 class RewardedAdService {
-  static const _iosTestUnit = 'ca-app-pub-3940256099942544/1712485313';
-  static const _androidTestUnit = 'ca-app-pub-3940256099942544/5224354917';
-  static const _iosUnit = String.fromEnvironment(
-    'ADMOB_IOS_REWARDED_AD_UNIT_ID',
-    defaultValue: _iosTestUnit,
-  );
-  static const _androidUnit = String.fromEnvironment(
-    'ADMOB_ANDROID_REWARDED_AD_UNIT_ID',
-    defaultValue: _androidTestUnit,
-  );
+  RewardedAdService._();
 
-  bool get _supported =>
-      !kIsWeb &&
-      (defaultTargetPlatform == TargetPlatform.iOS ||
-          defaultTargetPlatform == TargetPlatform.android);
+  static final RewardedAdService instance = RewardedAdService._();
+  static const _iosUnit = 'ca-app-pub-2535194044471316/8838923240';
 
-  String get _adUnitId =>
-      defaultTargetPlatform == TargetPlatform.iOS ? _iosUnit : _androidUnit;
+  RewardedAd? _ad;
+  DateTime? _loadedAt;
+  Future<void>? _loading;
+  bool _showing = false;
 
-  Future<bool> showRewardedAd() async {
-    if (!_supported) return false;
+  bool get _supported => !kIsWeb && defaultTargetPlatform == TargetPlatform.iOS;
 
+  void _discardExpiredAd() {
+    if (_ad == null || _loadedAt == null) return;
+    if (DateTime.now().difference(_loadedAt!) < const Duration(hours: 1)) {
+      return;
+    }
+    _ad!.dispose();
+    _ad = null;
+    _loadedAt = null;
+  }
+
+  /// Starts loading during splash; callers can reuse the same in-flight load.
+  Future<void> preload() async {
+    if (!_supported) return;
+    _discardExpiredAd();
+    if (_ad != null) return;
+    final pending = _loading;
+    if (pending != null) return pending;
+    final load = _load();
+    _loading = load;
+    try {
+      await load;
+    } finally {
+      if (identical(_loading, load)) _loading = null;
+    }
+  }
+
+  Future<void> _load() async {
     final loadCompleter = Completer<RewardedAd?>();
     var loadTimedOut = false;
     try {
       await MobileAds.instance.initialize();
-      RewardedAd.load(
-        adUnitId: _adUnitId,
+      await RewardedAd.load(
+        adUnitId: _iosUnit,
         request: const AdRequest(),
         rewardedAdLoadCallback: RewardedAdLoadCallback(
           onAdLoaded: (ad) {
@@ -43,7 +60,8 @@ class RewardedAdService {
             }
             if (!loadCompleter.isCompleted) loadCompleter.complete(ad);
           },
-          onAdFailedToLoad: (_) {
+          onAdFailedToLoad: (error) {
+            debugPrint('Rewarded ad failed to load: $error');
             if (!loadCompleter.isCompleted) loadCompleter.complete(null);
           },
         ),
@@ -55,30 +73,51 @@ class RewardedAdService {
           return null;
         },
       );
-      if (ad == null) return false;
+      if (ad == null) return;
+      _ad = ad;
+      _loadedAt = DateTime.now();
+    } catch (error) {
+      debugPrint('Rewarded ad request failed: $error');
+    }
+  }
 
-      final rewardCompleter = Completer<bool>();
-      var earnedReward = false;
-      ad.fullScreenContentCallback = FullScreenContentCallback<RewardedAd>(
-        onAdDismissedFullScreenContent: (ad) {
-          ad.dispose();
-          if (!rewardCompleter.isCompleted) {
-            rewardCompleter.complete(earnedReward);
-          }
-        },
-        onAdFailedToShowFullScreenContent: (ad, _) {
-          ad.dispose();
-          if (!rewardCompleter.isCompleted) rewardCompleter.complete(false);
-        },
-      );
-      ad.show(
+  Future<bool> showRewardedAd() async {
+    if (!_supported || _showing) return false;
+    await preload();
+    _discardExpiredAd();
+    final ad = _ad;
+    if (ad == null) return false;
+    _ad = null;
+    _loadedAt = null;
+    _showing = true;
+
+    final rewardCompleter = Completer<bool>();
+    var earnedReward = false;
+    void finish(RewardedAd ad, bool rewarded) {
+      if (rewardCompleter.isCompleted) return;
+      _showing = false;
+      ad.dispose();
+      rewardCompleter.complete(rewarded);
+      unawaited(preload());
+    }
+
+    ad.fullScreenContentCallback = FullScreenContentCallback<RewardedAd>(
+      onAdDismissedFullScreenContent: (ad) => finish(ad, earnedReward),
+      onAdFailedToShowFullScreenContent: (ad, error) {
+        debugPrint('Rewarded ad failed to show: $error');
+        finish(ad, false);
+      },
+    );
+    try {
+      await ad.show(
         onUserEarnedReward: (adWithoutView, rewardItem) {
           earnedReward = true;
         },
       );
-      return await rewardCompleter.future;
-    } catch (_) {
-      return false;
+    } catch (error) {
+      debugPrint('Rewarded ad show request failed: $error');
+      finish(ad, false);
     }
+    return rewardCompleter.future;
   }
 }

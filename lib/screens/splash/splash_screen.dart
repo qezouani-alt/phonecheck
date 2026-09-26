@@ -4,7 +4,9 @@ import '../../core/theme/app_colors.dart';
 import '../home/home_screen.dart';
 
 class SplashScreen extends StatefulWidget {
-  const SplashScreen({super.key});
+  const SplashScreen({super.key, required this.onComplete});
+
+  final Future<void> Function() onComplete;
 
   @override
   State<SplashScreen> createState() => _SplashScreenState();
@@ -12,6 +14,7 @@ class SplashScreen extends StatefulWidget {
 
 class _SplashScreenState extends State<SplashScreen>
     with SingleTickerProviderStateMixin {
+  bool _finishing = false;
   late final AnimationController _progress = AnimationController(
     vsync: this,
     duration: const Duration(seconds: 5),
@@ -23,8 +26,11 @@ class _SplashScreenState extends State<SplashScreen>
     _progress.forward();
   }
 
-  void _onProgressStatus(AnimationStatus status) {
-    if (status != AnimationStatus.completed || !mounted) return;
+  Future<void> _onProgressStatus(AnimationStatus status) async {
+    if (status != AnimationStatus.completed || !mounted || _finishing) return;
+    _finishing = true;
+    await widget.onComplete();
+    if (!mounted) return;
     Navigator.of(context).pushReplacement(
       PageRouteBuilder<void>(
         pageBuilder: (_, animation, _) => const HomeScreen(),

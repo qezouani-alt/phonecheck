@@ -1,8 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import 'core/theme/app_theme.dart';
 import 'data/inspection_store.dart';
 import 'services/ads/app_open_ad_service.dart';
+import 'services/ads/rewarded_ad_service.dart';
 import 'services/device/device_info_controller.dart';
 import 'screens/splash/splash_screen.dart';
 
@@ -27,6 +30,7 @@ class _PhoneCheckAppState extends State<PhoneCheckApp> {
     deviceInfo.load();
     store.loadReports().catchError((Object _) {});
     appOpenAds.initialize();
+    unawaited(RewardedAdService.instance.preload());
   }
 
   @override
@@ -48,7 +52,7 @@ class _PhoneCheckAppState extends State<PhoneCheckApp> {
         theme: AppTheme.light(),
         darkTheme: AppTheme.dark(),
         themeMode: ThemeMode.system,
-        home: const SplashScreen(),
+        home: SplashScreen(onComplete: appOpenAds.showOnLaunch),
       ),
     ),
   );

@@ -4,36 +4,21 @@ import 'package:flutter/foundation.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 /// Loads an App Open Ad ahead of a foreground transition.
-///
-/// Test IDs are intentionally the defaults. Supply production IDs with
-/// `--dart-define=ADMOB_IOS_APP_OPEN_AD_UNIT_ID=...` and its Android
-/// equivalent before publishing.
+/// Uses the iOS app-open ad unit configured for this app.
 class AppOpenAdService {
-  static const _iosTestUnit = 'ca-app-pub-3940256099942544/5575463023';
-  static const _androidTestUnit = 'ca-app-pub-3940256099942544/9257395921';
-  static const _iosUnit = String.fromEnvironment(
-    'ADMOB_IOS_APP_OPEN_AD_UNIT_ID',
-    defaultValue: _iosTestUnit,
-  );
-  static const _androidUnit = String.fromEnvironment(
-    'ADMOB_ANDROID_APP_OPEN_AD_UNIT_ID',
-    defaultValue: _androidTestUnit,
-  );
+  static const _iosUnit = 'ca-app-pub-2535194044471316/5291308906';
 
   AppOpenAd? _ad;
   DateTime? _loadedAt;
   StreamSubscription<AppState>? _lifecycle;
+  final Completer<void> _firstLoad = Completer<void>();
+  Completer<void>? _showCompletion;
   bool _loading = false;
   bool _showing = false;
   bool _initialized = false;
   bool _returnedFromBackground = false;
 
-  bool get _supported =>
-      !kIsWeb &&
-      (defaultTargetPlatform == TargetPlatform.iOS ||
-          defaultTargetPlatform == TargetPlatform.android);
-  String get _adUnitId =>
-      defaultTargetPlatform == TargetPlatform.iOS ? _iosUnit : _androidUnit;
+  bool get _supported => !kIsWeb && defaultTargetPlatform == TargetPlatform.iOS;
   bool get _available =>
       _ad != null &&
       _loadedAt != null &&
@@ -50,14 +35,28 @@ class AppOpenAdService {
           _returnedFromBackground = true;
         } else if (state == AppState.foreground && _returnedFromBackground) {
           _returnedFromBackground = false;
-          showIfAvailable();
+          unawaited(showIfAvailable());
         }
       });
       unawaited(load());
-    } catch (_) {
+    } catch (error) {
+      debugPrint('App open ad initialization failed: $error');
+      if (!_firstLoad.isCompleted) _firstLoad.complete();
       // Ads are optional. A missing test/plugin channel must never affect an
       // inspection or report flow.
     }
+  }
+
+  /// Gives the first ad a short chance to load while the splash is visible.
+  /// Never present a late ad after the user has reached the home screen.
+  Future<void> showOnLaunch() async {
+    if (!_supported) return;
+    try {
+      await _firstLoad.future.timeout(const Duration(seconds: 5));
+    } on TimeoutException {
+      return;
+    }
+    if (_showing || _available) await showIfAvailable();
   }
 
   Future<void> load() async {
@@ -65,7 +64,7 @@ class AppOpenAdService {
     _loading = true;
     try {
       await AppOpenAd.load(
-        adUnitId: _adUnitId,
+        adUnitId: _iosUnit,
         request: const AdRequest(),
         adLoadCallback: AppOpenAdLoadCallback(
           onAdLoaded: (ad) {
@@ -73,41 +72,63 @@ class AppOpenAdService {
             _ad = ad;
             _loadedAt = DateTime.now();
             _loading = false;
+            if (!_firstLoad.isCompleted) _firstLoad.complete();
           },
-          onAdFailedToLoad: (_) => _loading = false,
+          onAdFailedToLoad: (error) {
+            _loading = false;
+            debugPrint('App open ad failed to load: $error');
+            if (!_firstLoad.isCompleted) _firstLoad.complete();
+          },
         ),
       );
-    } catch (_) {
+    } catch (error) {
       _loading = false;
+      debugPrint('App open ad request failed: $error');
+      if (!_firstLoad.isCompleted) _firstLoad.complete();
     }
   }
 
-  void showIfAvailable() {
+  Future<void> showIfAvailable() async {
+    if (_showing) return _showCompletion?.future;
     if (!_available) {
       unawaited(load());
       return;
     }
-    if (_showing) return;
     final ad = _ad!;
     _ad = null;
     _loadedAt = null;
     _showing = true;
+    final completion = _showCompletion = Completer<void>();
+    void finish(AppOpenAd ad) {
+      if (completion.isCompleted) return;
+      _showing = false;
+      _showCompletion = null;
+      ad.dispose();
+      completion.complete();
+      unawaited(load());
+    }
+
     ad.fullScreenContentCallback = FullScreenContentCallback<AppOpenAd>(
-      onAdDismissedFullScreenContent: (ad) {
-        _showing = false;
-        ad.dispose();
-        unawaited(load());
-      },
-      onAdFailedToShowFullScreenContent: (ad, _) {
-        _showing = false;
-        ad.dispose();
-        unawaited(load());
+      onAdDismissedFullScreenContent: finish,
+      onAdFailedToShowFullScreenContent: (ad, error) {
+        debugPrint('App open ad failed to show: $error');
+        finish(ad);
       },
     );
-    ad.show();
+    try {
+      await ad.show();
+    } catch (error) {
+      debugPrint('App open ad show request failed: $error');
+      finish(ad);
+    }
+    await completion.future;
   }
 
   Future<void> dispose() async {
+    if (!_firstLoad.isCompleted) _firstLoad.complete();
+    if (_showCompletion case final completion?) {
+      if (!completion.isCompleted) completion.complete();
+    }
     await _lifecycle?.cancel();
     _lifecycle = null;
     _ad?.dispose();
