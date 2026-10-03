@@ -1,0 +1,128 @@
+{
+  "object" : {
+    "artifacts" : [
+      {
+        "kind" : {
+          "xcframework" : {
+
+          }
+        },
+        "packageRef" : {
+          "identity" : "swift-package-manager-google-mobile-ads",
+          "kind" : "remoteSourceControl",
+          "location" : "https://github.com/googleads/swift-package-manager-google-mobile-ads",
+          "name" : "GoogleMobileAds"
+        },
+        "path" : "/Users/Apple/Downloads/phonecheck-main/build/ios/SourcePackages/artifacts/swift-package-manager-google-mobile-ads/GoogleMobileAds/GoogleMobileAds.xcframework",
+        "source" : {
+          "checksum" : "04a18e81adabfc087b228e962248ec6acb925f0209c76c4bdf80739590d5321c",
+          "type" : "remote",
+          "url" : "https://dl.google.com/googleadmobadssdk/04a18e81adabfc08/googlemobileadsios-spm-13.10.0.zip"
+        },
+        "targetName" : "GoogleMobileAds"
+      },
+      {
+        "kind" : {
+          "xcframework" : {
+
+          }
+        },
+        "packageRef" : {
+          "identity" : "swift-package-manager-google-user-messaging-platform",
+          "kind" : "remoteSourceControl",
+          "location" : "https://github.com/googleads/swift-package-manager-google-user-messaging-platform.git",
+          "name" : "GoogleUserMessagingPlatform"
+        },
+        "path" : "/Users/Apple/Downloads/phonecheck-main/build/ios/SourcePackages/artifacts/swift-package-manager-google-user-messaging-platform/UserMessagingPlatform/UserMessagingPlatform.xcframework",
+        "source" : {
+          "checksum" : "90fe6bf3b0f4ce0d0199628c0871de58b6f673375148b98d52348aecc86db231",
+          "type" : "remote",
+          "url" : "https://dl.google.com/googleadmobadssdk/90fe6bf3b0f4ce0d/googleusermessagingplatformios-spm-3.1.0.zip"
+        },
+        "targetName" : "UserMessagingPlatform"
+      }
+    ],
+    "dependencies" : [
+      {
+        "basedOn" : null,
+        "packageRef" : {
+          "identity" : "flutterframework",
+          "kind" : "fileSystem",
+          "location" : "/Users/Apple/Downloads/phonecheck-main/ios/Flutter/ephemeral/Packages/.packages/FlutterFramework",
+          "name" : "FlutterFramework"
+        },
+        "state" : {
+          "name" : "fileSystem",
+          "path" : "/Users/Apple/Downloads/phonecheck-main/ios/Flutter/ephemeral/Packages/.packages/FlutterFramework"
+        },
+        "subpath" : "flutterframework"
+      },
+      {
+        "basedOn" : null,
+        "packageRef" : {
+          "identity" : "google_mobile_ads-9.1.0",
+          "kind" : "fileSystem",
+          "location" : "/Users/Apple/Downloads/phonecheck-main/ios/Flutter/ephemeral/Packages/.packages/google_mobile_ads-9.1.0",
+          "name" : "google_mobile_ads"
+        },
+        "state" : {
+          "name" : "fileSystem",
+          "path" : "/Users/Apple/Downloads/phonecheck-main/ios/Flutter/ephemeral/Packages/.packages/google_mobile_ads-9.1.0"
+        },
+        "subpath" : "google_mobile_ads-9.1.0"
+      },
+      {
+        "basedOn" : null,
+        "packageRef" : {
+          "identity" : "swift-package-manager-google-mobile-ads",
+          "kind" : "remoteSourceControl",
+          "location" : "https://github.com/googleads/swift-package-manager-google-mobile-ads",
+          "name" : "GoogleMobileAds"
+        },
+        "state" : {
+          "checkoutState" : {
+            "revision" : "12b7af0f844723a86fd3c0089b02f64b1e495605",
+            "version" : "13.10.0"
+          },
+          "name" : "sourceControlCheckout"
+        },
+        "subpath" : "swift-package-manager-google-mobile-ads"
+      },
+      {
+        "basedOn" : null,
+        "packageRef" : {
+          "identity" : "swift-package-manager-google-user-messaging-platform",
+          "kind" : "remoteSourceControl",
+          "location" : "https://github.com/googleads/swift-package-manager-google-user-messaging-platform.git",
+          "name" : "GoogleUserMessagingPlatform"
+        },
+        "state" : {
+          "checkoutState" : {
+            "revision" : "13b248eaa73b7826f0efb1bcf455e251d65ecb1b",
+            "version" : "3.1.0"
+          },
+          "name" : "sourceControlCheckout"
+        },
+        "subpath" : "swift-package-manager-google-user-messaging-platform"
+      },
+      {
+        "basedOn" : null,
+        "packageRef" : {
+          "identity" : "webview_flutter_wkwebview-3.26.1",
+          "kind" : "fileSystem",
+          "location" : "/Users/Apple/Downloads/phonecheck-main/ios/Flutter/ephemeral/Packages/.packages/webview_flutter_wkwebview-3.26.1",
+          "name" : "webview_flutter_wkwebview"
+        },
+        "state" : {
+          "name" : "fileSystem",
+          "path" : "/Users/Apple/Downloads/phonecheck-main/ios/Flutter/ephemeral/Packages/.packages/webview_flutter_wkwebview-3.26.1"
+        },
+        "subpath" : "webview_flutter_wkwebview-3.26.1"
+      }
+    ],
+    "prebuilts" : [
+
+    ]
+  },
+  "version" : 7
+}
